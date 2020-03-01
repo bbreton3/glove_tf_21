@@ -305,7 +305,7 @@ def glove_model_train(preprocessing_glove_fit, glove_model, cooc_rows, cooc_cols
 
     glove_model_2.fit(test_dataset, epochs=2, callbacks=[
         EmbeddingCallback(file_writer_path=embeddings_folder_path,
-                          layer_names=["context_embedding", "target_embedding"], labels=vocab, max_number=len(vocab),
+                          layer_names=["context_embeddings", "target_embeddings"], labels=vocab, max_number=len(vocab),
                           combined_embeddings=True, save_every_epoch=1),
         # LrTensorboardCallback(log_dir=tensorboard_folder_path),
         # SaveModelCallback(file_path=summaries_folder_path),

@@ -21,15 +21,15 @@ class GloveModel(tf.keras.Model):
         self.alpha = alpha
         self.x_max = x_max
 
-        self.target_embedding = tf.keras.layers.Embedding(
-            input_dim=self.vocab_size, output_dim=self.dim, input_length=1, name="target_embedding"
+        self.target_embeddings = tf.keras.layers.Embedding(
+            input_dim=self.vocab_size, output_dim=self.dim, input_length=1, name="target_embeddings"
         )
         self.target_bias = tf.keras.layers.Embedding(
             input_dim=self.vocab_size, output_dim=1, input_length=1, name="target_bias"
         )
 
-        self.context_embedding = tf.keras.layers.Embedding(
-            input_dim=self.vocab_size, output_dim=self.dim, input_length=1, name="context_embedding"
+        self.context_embeddings = tf.keras.layers.Embedding(
+            input_dim=self.vocab_size, output_dim=self.dim, input_length=1, name="context_embeddings"
         )
         self.context_bias = tf.keras.layers.Embedding(
             input_dim=self.vocab_size, output_dim=1, input_length=1, name="context_bias"
@@ -52,14 +52,14 @@ class GloveModel(tf.keras.Model):
         target_ix = inputs[:, 0]
         context_ix = inputs[:, 1]
 
-        target_embedding = self.target_embedding(target_ix)
+        target_embeddings = self.target_embeddings(target_ix)
         target_bias = self.target_bias(target_ix)
 
-        context_embedding = self.context_embedding(context_ix)
+        context_embeddings = self.context_embeddings(context_ix)
         context_bias = self.context_bias(context_ix)
 
         # (7) in the paper (page 4)
-        dot_product = self.dot_product([target_embedding, context_embedding])
+        dot_product = self.dot_product([target_embeddings, context_embeddings])
         prediction = self.prediction([dot_product, target_bias, context_bias])
 
         return prediction
