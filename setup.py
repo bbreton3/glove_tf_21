@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    Setup file for glove_tf_21.
+    Setup file for glove_tf20.
     Use setup.cfg to configure your project.
 
-    This file was generated with PyScaffold 3.2.3.
+    This file was generated with PyScaffold 3.2.1.
     PyScaffold helps you to put up the scaffold of your new Python project.
     Learn more under: https://pyscaffold.org/
 """
