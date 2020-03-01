@@ -278,6 +278,8 @@ def train_glove_model(preprocessing_glove_fit, cooc_rows, cooc_cols, cooc_data):
 
     glove_model.fit(test_dataset)
 
+    return glove_model
+
 
 
 
