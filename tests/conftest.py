@@ -13,6 +13,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import tensorflow as tf
+from glove_tf_21.callbacks import EmbeddingCallback, LrTensorboardCallback, SaveModelCallback
 from glove_tf_21.glove_model import GloveModel
 from glove_tf_21.preprocessing_glove import PreprocessingGlove
 from glove_tf_21.smart_label_encoder import SmartLabelEncoder
@@ -23,6 +24,10 @@ CORPUS_PATH = "tests/resources/corpus/"
 TEMP_FOLDER_PATH = "tests/resources/temp_folder"
 CORPUS_FILE_NAME = "test_corpus_train.txt"
 CORPUS_FILE_PATH = os.path.join(CORPUS_PATH, CORPUS_FILE_NAME)
+
+SUMMARIES_PATH = "tests/resources/summaries"
+TENSORBOARD_PATH = "tests/resources/tensorboard"
+EMBEDDINGS_PATH = "tests/resources/embeddings"
 
 COOC_MATRIX = np.array([
     [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -157,6 +162,21 @@ def temp_folder_path():
 
 
 @pytest.fixture(scope="module")
+def summaries_folder_path():
+    return SUMMARIES_PATH
+
+
+@pytest.fixture(scope="module")
+def tensorboard_folder_path():
+    return TENSORBOARD_PATH
+
+
+@pytest.fixture(scope="module")
+def embeddings_folder_path():
+    return EMBEDDINGS_PATH
+
+
+@pytest.fixture(scope="module")
 def load_corpus():
     return [line.split() for line in open(CORPUS_FILE_PATH, "r").readlines()]
 
@@ -271,7 +291,11 @@ def glove_model(preprocessing_glove_fit):
 
 
 @pytest.fixture(scope="module")
-def glove_model_train(preprocessing_glove_fit, glove_model, cooc_rows, cooc_cols, cooc_data):
+def glove_model_train(preprocessing_glove_fit, glove_model, cooc_rows, cooc_cols, cooc_data, embeddings_folder_path,
+                      tensorboard_folder_path, summaries_folder_path):
+
+    vocab = preprocessing_glove_fit.get_labels()
+
     glove_model_2 = deepcopy(glove_model)
 
     test_dataset = tf.data.Dataset.from_tensor_slices(
@@ -279,6 +303,12 @@ def glove_model_train(preprocessing_glove_fit, glove_model, cooc_rows, cooc_cols
          cooc_data.reshape(-1, 1))
     ).batch(2)
 
-    glove_model_2.fit(test_dataset)
+    glove_model_2.fit(test_dataset, epochs=2, callbacks=[
+        EmbeddingCallback(file_writer_path=embeddings_folder_path,
+                          layer_names=["context_embedding", "target_embedding"], labels=vocab, max_number=len(vocab),
+                          combined_embeddings=True, save_every_epoch=1),
+        # LrTensorboardCallback(log_dir=tensorboard_folder_path),
+        # SaveModelCallback(file_path=summaries_folder_path),
+    ])
 
     return glove_model_2

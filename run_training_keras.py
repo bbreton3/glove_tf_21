@@ -54,8 +54,7 @@ if os.path.isfile(epoch_file_no_path):
 optimizer = tf.keras.optimizers.Adam()
 
 """ Callbacks """
-save_model_callback = SaveModelCallback(filepath=checkpoint_path, layer_names=["context_embedding", "target_embedding"],
-                                        combined_embeddings=True)
+save_model_callback = SaveModelCallback(filepath=checkpoint_path)
 lr_tensorboard_callback = LrTensorboardCallback(log_dir=os.path.join("./summaries", training_name, "tensorboard"))
 embedding_callback = EmbeddingCallback(file_writer_path=os.path.join("summaries", training_name, "embeddings"),
                                        layer_names=["context_embedding", "target_embedding"], labels=vocab,

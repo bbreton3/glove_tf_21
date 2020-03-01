@@ -42,10 +42,11 @@ class EmbeddingCallback(tf.keras.callbacks.Callback):
         metadata_df["__init__"] = metadata_df.index
 
         for cluster_number in self.cluster_numbers:
-            kmeans = KMeans(n_clusters=cluster_number, n_jobs=-1)
-            metadata_df[f"{cluster_number}_clusters"] = kmeans.fit_predict(embeddings_numpy)
+            if cluster_number < embeddings_numpy.shape[0]:
+                kmeans = KMeans(n_clusters=cluster_number, n_jobs=-1)
+                metadata_df[f"{cluster_number}_clusters"] = kmeans.fit_predict(embeddings_numpy)
 
-        metadata_df.to_csv(file_path, encoding='utf-8', index=None, sep="\t")
+        metadata_df.to_csv(file_path, encoding='utf-8', index=False, sep="\t")
 
     @staticmethod
     def add_tensor_info(embeddings_numpy, name, projector_config):
@@ -105,12 +106,9 @@ class EmbeddingCallback(tf.keras.callbacks.Callback):
                 tensor_embeddings.append(tensor_embedding)
                 self.save_metadata(embeddings_numpy=embeddings_numpy_reduced,
                                    file_path=os.path.join(file_writer_epoch_path, metadata_file_name))
-                np.save(os.path.join(file_writer_epoch_path, "combined_embeddings"), embeddings_numpy)
+                np.save(os.path.join(file_writer_epoch_path, name), embeddings_numpy)
 
             projector.visualize_embeddings(file_writer_epoch_path, projector_config)
             saver = tf.compat.v1.train.Saver(tensor_embeddings)  # Must pass list or dict
             saver.save(sess=None, global_step=self.params['steps'] * (epoch + 1),
                        save_path=os.path.join(file_writer_epoch_path, "embeddings-ckpt"))
-
-
-
