@@ -8,19 +8,16 @@
 """
 
 import os
+from copy import deepcopy
 
 import numpy as np
 import pytest
+import tensorflow as tf
+from glove_tf_21.glove_model import GloveModel
 from glove_tf_21.preprocessing_glove import PreprocessingGlove
 from glove_tf_21.smart_label_encoder import SmartLabelEncoder
 from glove_tf_21.utils.tfrecords_utils import create_example
-
-from glove_tf_21.glove_model import GloveModel
-
 from scipy.sparse import coo_matrix
-
-import tensorflow as tf
-
 
 CORPUS_PATH = "tests/resources/corpus/"
 TEMP_FOLDER_PATH = "tests/resources/temp_folder"
@@ -240,8 +237,8 @@ def smart_label_encoder():
 
 
 @pytest.fixture(scope="module")
-def smart_label_encoder_fit():
-    sle = SmartLabelEncoder(min_occurrence=2, max_features=100, unk_token="UNK")
+def smart_label_encoder_fit(smart_label_encoder):
+    sle = deepcopy(smart_label_encoder)
     sle.fit(X=CORPUS_FILE_PATH)
     return sle
 
@@ -253,8 +250,8 @@ def preprocessing_glove():
 
 
 @pytest.fixture(scope="module")
-def preprocessing_glove_fit():
-    prep_glove = PreprocessingGlove(data_path=CORPUS_PATH, min_occurrence=2, max_features=100)
+def preprocessing_glove_fit(preprocessing_glove):
+    prep_glove = deepcopy(preprocessing_glove)
     prep_glove()
     return prep_glove
 
@@ -263,25 +260,25 @@ def preprocessing_glove_fit():
 
 
 @pytest.fixture(scope="module")
-def train_glove_model(preprocessing_glove_fit, cooc_rows, cooc_cols, cooc_data):
-
+def glove_model(preprocessing_glove_fit):
     vocab = preprocessing_glove_fit.get_labels()
 
     glove_model = GloveModel(vocab_size=len(vocab), dim=2)
     glove_model.build(input_shape=(2, 2))
     glove_model.compile(optimizer="adam", loss=glove_model.glove_loss)
 
+    return glove_model
+
+
+@pytest.fixture(scope="module")
+def glove_model_train(preprocessing_glove_fit, glove_model, cooc_rows, cooc_cols, cooc_data):
+    glove_model_2 = deepcopy(glove_model)
+
     test_dataset = tf.data.Dataset.from_tensor_slices(
         (np.hstack([cooc_rows.reshape(-1, 1), cooc_cols.reshape(-1, 1)]),
          cooc_data.reshape(-1, 1))
     ).batch(2)
 
-    glove_model.fit(test_dataset)
+    glove_model_2.fit(test_dataset)
 
-    return glove_model
-
-
-
-
-
-
+    return glove_model_2
