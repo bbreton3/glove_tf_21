@@ -1,31 +1,33 @@
+import argparse
+import os
+from multiprocessing import cpu_count
+from time import time
+
+import tensorflow as tf
 from glove_tf20.preprocessing_glove import PreprocessingGlove
 from glove_tf20.utils import save_example_to_writer, save_labels, parallelize_function, split_share_data
 from sklearn.model_selection import train_test_split
-from multiprocessing import cpu_count
-import tensorflow as tf
-from time import time
-
-import argparse
-
-import os
 
 parser = argparse.ArgumentParser(description='Preprocess ')
-parser.add_argument('--data_path', help='path to the .txt data')
-parser.add_argument('--output_path', help='path where you want to store the sparse file')
-parser.add_argument('--max_features', help='size of the vocabulary to consider', default=10000)
-parser.add_argument('--val_size', help='size of the validation data', default=0.05)
-parser.add_argument('--tf_split', help='number of tfrecords files, default is number of cores', default=None)
+parser.add_argument('--data_path', help='path to the .txt file or the folder containing the .txt files')
+parser.add_argument('--output_path', help='path where you want to store the tfrecords')
+parser.add_argument('--max_features', help='size of the vocabulary to consider the UNK token is counted in this vocabulary size', default=10000)
+parser.add_argument('--val_size', help='size of the corpus to keep for validation', default=0.05)
+parser.add_argument('--tf_split', help='number of tfrecords files, default is number of cpu cores', default=None)
 args = parser.parse_args()
 
 data_path = args.data_path
 output_path = args.output_path
+if not os.path.isdir(output_path):
+    os.mkdir(output_path)
+
 max_features = int(args.max_features)
 val_size = float(args.val_size)
 tf_split = cpu_count() if args.tf_split is None else int(args.tf_split)
 
 prep_glove = PreprocessingGlove(data_path, max_features=max_features)
 
-glove_rows, glove_cols, glove_cooc = prep_glove()
+glove_rows, glove_cols, glove_cooc, _ = prep_glove()
 
 
 glove_rows_train, glove_rows_val, glove_cols_train, glove_cols_val, glove_cooc_train, glove_cooc_val = train_test_split(

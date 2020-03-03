@@ -1,31 +1,26 @@
 from glove_tf20.glove_model import GloveModel
 from glove_tf20.utils.file_utils import load_file, load_size, get_train_files, get_val_files
 from glove_tf20.utils.tfrecords_utils import parse_function
-from glove_tf20.callbacks.embeddings_callback import EmbeddingCallback
-from glove_tf20.callbacks.save_model_callback import SaveModelCallback
-from glove_tf20.callbacks.lr_tensorboard_callback import LrTensorboardCallback
 from tqdm import tqdm
 import tensorflow as tf
 import argparse
 import os
 
-parser = argparse.ArgumentParser(description="Preprocess ")
-parser.add_argument("--data_path", help="path to the tfrecords files")
-parser.add_argument("--training_name", help="path where you want to store output model")
+parser = argparse.ArgumentParser(description="Train")
+parser.add_argument("--data_path", help="path to the folder containing the tfrecords")
+parser.add_argument("--training_name", help="path where you want to store output model in the summaries folder")
 parser.add_argument("--dim", help="dimension of the vectors", default=100)
-parser.add_argument("--batch_size", help="batch_size", default=10000)
-parser.add_argument("--epochs_number", help="epochs_number", default=50)
-parser.add_argument("--initial_epoch", help="initial_epochs_number", default=0)
-parser.add_argument("--save_embeddings_every_epoch", help="number of epochs between any embedding saving", default=5)
+parser.add_argument("--batch_size", help="batch size", default=10000)
+parser.add_argument("--epochs_number", help="total number of epochs", default=50)
+parser.add_argument("--initial_epoch", help="initial epochs number", default=0)
 args = parser.parse_args()
 
 data_path = args.data_path
-training_name = args.training_name
+training_path = os.path.join("summaries", args.training_name)
 dim = int(args.dim)
 batch_size = int(args.batch_size)
 epochs_number = int(args.epochs_number)
 initial_epoch = int(args.initial_epoch)
-save_embeddings_every_epoch = int(args.save_embeddings_every_epoch)
 
 """ Load Metadata """
 vocab = load_file(os.path.join(data_path, "labels.txt"))
@@ -46,35 +41,16 @@ glove_model.build(input_shape=(batch_size, 2))
 glove_model.compile(optimizer="adam", loss=glove_model.glove_loss)
 
 """ Load previous weights, and restart training from the last epoch saved """
-checkpoint_path = os.path.join("summaries", training_name, "saved_checkpoint", "ckpt")
-epoch_file_no_path = f"{checkpoint_path}.last_epoch_number.txt"
+save_model_path = os.path.join(training_path, "save_model", "ckpt")
+epoch_file_no_path = f"{save_model_path}.last_epoch_number.txt"
 if os.path.isfile(epoch_file_no_path):
     initial_epoch = load_size(epoch_file_no_path)
-    glove_model.load_weights(checkpoint_path)
+    glove_model.load_weights(save_model_path)
 
 optimizer = tf.keras.optimizers.Adam()
-
-""" Callbacks """
-save_model_callback = SaveModelCallback(filepath=checkpoint_path, layer_names=["context_embedding", "target_embedding"],
-                                        combined_embeddings=True)
-lr_tensorboard_callback = LrTensorboardCallback(log_dir=os.path.join("./summaries", training_name, "tensorboard"))
-embedding_callback = EmbeddingCallback(file_writer_path=os.path.join("summaries", training_name, "embeddings"),
-                                       layer_names=["context_embedding", "target_embedding"], labels=vocab,
-                                       max_number=5000, combined_embeddings=True)
-reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(factor=0.5, patience=10)
-
 print(glove_model.summary())
-# glove_model.fit(x=train_ds, validation_data=val_ds, epochs=epochs_number,
-#                 steps_per_epoch=train_size // batch_size,
-#                 validation_steps=val_size // batch_size,
-#                 callbacks=[lr_tensorboard_callback, embedding_callback, save_model_callback, reduce_lr],
-#                 initial_epoch=initial_epoch
-#                 )
 
-#
 
-#
-#
 @tf.function
 def train_step(examples, labels):
     with tf.GradientTape() as train_tape:
@@ -94,45 +70,12 @@ def val_step(examples, labels):
 
     return val_loss
 
+
 train_loss_mean = tf.keras.metrics.MeanTensor(name="train_loss_mean")
 val_loss_mean = tf.keras.metrics.MeanTensor(name="val_loss_mean")
-#
-#
-# @tf.function
-# def tb_train(train_loss, global_step, writer):
-#     with writer.as_default():
-#         tf.summary.scalar("train_loss", train_loss, step=global_step)
-#
-#
-# @tf.function
-# def tb_val(val_loss, global_step, writer):
-#     with writer.as_default():
-#         tf.summary.scalar("val_loss", val_loss, step=global_step)
-#
-#
-# # writer = tf.summary.create_file_writer("/tmp/mylogs/tf_function")
-# #
-# # @tf.function
-# # def tb_func(step):
-#
-#
-# # for step in range(100):
-# #   my_func(step)
-# #   writer.flush()
-#
-#
-# global_step = 0
-# update_steps = 100
-#
-# train_writer = tf.summary.create_file_writer(
-#     os.path.join("./save_model", training_name, "tfrecords", "train")
-# )
-# val_writer = tf.summary.create_file_writer(
-#     os.path.join("./save_model", training_name, "tfrecords", "val")
-# )
-#
 
-for epoch in range(epochs_number):
+
+for epoch in range(initial_epoch, epochs_number, 1):
 
     print(f"\nEpoch {epoch + 1} :")
     train_steps_per_epoch = train_size // batch_size
@@ -141,7 +84,6 @@ for epoch in range(epochs_number):
     )
     average_train_loss = 0
     for train_ix, (examples, labels) in train_pbar:
-        # global_step += 1
         train_loss = train_step(examples, labels).numpy()
         average_train_loss = train_loss_mean(train_loss)
         train_pbar.set_postfix({
@@ -149,14 +91,8 @@ for epoch in range(epochs_number):
             "inst_train_loss": train_loss
         })
 
-        import ipdb
-        ipdb.set_trace()
-
-        # if global_step % int(train_steps_per_epoch / 20) == 0:
-        #     with train_writer.as_default():
-        #         tf.summary.scalar(
-        #             "train_loss", train_loss, step=global_step
-        #         )
+    # Save model at the end of each epoch
+    glove_model.save(os.path.join(training_path, "save_model"))
 
     val_steps_per_epoch = val_size // batch_size
     val_pbar = tqdm(val_ds.enumerate(), total=val_steps_per_epoch, dynamic_ncols=True)
@@ -166,13 +102,8 @@ for epoch in range(epochs_number):
         average_val_loss = val_loss_mean(val_loss)
         val_pbar.set_postfix({"val_loss": average_val_loss.numpy()})
 
-    # with val_writer.as_default():
-    #     tf.summary.scalar(
-    #         "val_loss", average_val_loss, step=global_step
-    #     )
-    #
     train_loss_mean.reset_states()
     val_loss_mean.reset_states()
 
-    # Save model
-    # glove_model.save(os.path.join("./save_model", training_name, "saved_models"))
+# Save model
+glove_model.save(os.path.join(training_path, "save_model"))
