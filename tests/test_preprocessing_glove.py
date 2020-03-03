@@ -1,9 +1,6 @@
-from glove_tf_21 import PreprocessingGlove
 from glove_tf_21.utils.file_utils import save_labels
-from scipy.sparse import coo_matrix
 
 import numpy as np
-import pytest
 import os
 
 

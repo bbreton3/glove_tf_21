@@ -3,7 +3,7 @@ from pkg_resources import get_distribution, DistributionNotFound
 
 try:
     # Change here if project is renamed and does not equal the package name
-    dist_name = 'glove_tf2.0'
+    dist_name = 'glove_tf_21'
     __version__ = get_distribution(dist_name).version
 except DistributionNotFound:
     __version__ = 'unknown'
@@ -12,4 +12,3 @@ finally:
 
 from .smart_label_encoder import SmartLabelEncoder
 from .preprocessing_glove import PreprocessingGlove
-

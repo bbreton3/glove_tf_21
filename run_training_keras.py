@@ -107,4 +107,4 @@ glove_model.fit(x=train_ds, validation_data=val_ds, epochs=epochs_number,
 #     val_loss_mean.reset_states()
 #
 #     # Save model
-#     glove_model.save(os.path.join("./summaries", training_name, "saved_models"))
+#     glove_model.save(os.path.join("./save_model", training_name, "saved_models"))

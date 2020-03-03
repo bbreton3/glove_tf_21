@@ -25,7 +25,7 @@ TEMP_FOLDER_PATH = "tests/resources/temp_folder"
 CORPUS_FILE_NAME = "test_corpus_train.txt"
 CORPUS_FILE_PATH = os.path.join(CORPUS_PATH, CORPUS_FILE_NAME)
 
-SUMMARIES_PATH = "tests/resources/summaries"
+SAVE_MODEL_PATH = "tests/resources/save_model"
 TENSORBOARD_PATH = "tests/resources/tensorboard"
 EMBEDDINGS_PATH = "tests/resources/embeddings"
 
@@ -162,8 +162,8 @@ def temp_folder_path():
 
 
 @pytest.fixture(scope="module")
-def summaries_folder_path():
-    return SUMMARIES_PATH
+def save_model_folder_path():
+    return SAVE_MODEL_PATH
 
 
 @pytest.fixture(scope="module")
@@ -292,23 +292,33 @@ def glove_model(preprocessing_glove_fit):
 
 @pytest.fixture(scope="module")
 def glove_model_train(preprocessing_glove_fit, glove_model, cooc_rows, cooc_cols, cooc_data, embeddings_folder_path,
-                      tensorboard_folder_path, summaries_folder_path):
+                      tensorboard_folder_path, save_model_folder_path):
 
     vocab = preprocessing_glove_fit.get_labels()
 
+    # Copy the model
     glove_model_2 = deepcopy(glove_model)
 
+    # Create the dataset
     test_dataset = tf.data.Dataset.from_tensor_slices(
         (np.hstack([cooc_rows.reshape(-1, 1), cooc_cols.reshape(-1, 1)]),
          cooc_data.reshape(-1, 1))
     ).batch(2)
 
+    # Perform 2 different fits with different callbacks to test all the callback configurations
     glove_model_2.fit(test_dataset, epochs=2, callbacks=[
+        EmbeddingCallback(file_writer_path=embeddings_folder_path,
+                          layer_names=["context_embeddings", "target_embeddings"], labels=vocab, max_number=None,
+                          combined_embeddings=False, save_every_epoch=1),
+        LrTensorboardCallback(log_dir=tensorboard_folder_path)
+
+    ])
+
+    glove_model_2.fit(test_dataset, epochs=3, callbacks=[
         EmbeddingCallback(file_writer_path=embeddings_folder_path,
                           layer_names=["context_embeddings", "target_embeddings"], labels=vocab, max_number=len(vocab),
                           combined_embeddings=True, save_every_epoch=1),
-        # LrTensorboardCallback(log_dir=tensorboard_folder_path),
-        # SaveModelCallback(file_path=summaries_folder_path),
-    ])
+        SaveModelCallback(filepath=os.path.join(save_model_folder_path, "ckpt")),
+    ], initial_epoch=1)
 
     return glove_model_2

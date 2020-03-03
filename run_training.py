@@ -125,10 +125,10 @@ val_loss_mean = tf.keras.metrics.MeanTensor(name="val_loss_mean")
 # update_steps = 100
 #
 # train_writer = tf.summary.create_file_writer(
-#     os.path.join("./summaries", training_name, "tfrecords", "train")
+#     os.path.join("./save_model", training_name, "tfrecords", "train")
 # )
 # val_writer = tf.summary.create_file_writer(
-#     os.path.join("./summaries", training_name, "tfrecords", "val")
+#     os.path.join("./save_model", training_name, "tfrecords", "val")
 # )
 #
 
@@ -175,4 +175,4 @@ for epoch in range(epochs_number):
     val_loss_mean.reset_states()
 
     # Save model
-    # glove_model.save(os.path.join("./summaries", training_name, "saved_models"))
+    # glove_model.save(os.path.join("./save_model", training_name, "saved_models"))
